@@ -1,0 +1,495 @@
+Technical Configuration:
+We get the IP address to deploy the datenportal application. The server name is "ber-ianusdpa01vm"
+IP Address
+195.37.32.7
+User Name	*****
+Password	no
+
+Server configuration: vCPU: 4, vRAM: 16GB, Hard disk space: 500 GB, OS: Ubuntu Server 16.04 LTS 64Bit.
+For more details: ber-ianusdpa01vm 
+
+
+Enter the Server Environment
+In terminal :
+$ ssh username@195.37.32.7
+After writing this press enter. It will automatically login to the server without asking any password.   
+username@ber-ianusdpa01vm:~$
+
+In order to deploy the Datenportal in the server, we should install and configure: Apache 2 (with port 80) and Tomcat 7 (with port 8080). And MySQL server as our database server. We also need to install and configure Tomcat Connectors 1.2.42 to make the connection between Apache2 and Tomcat8.  
+If there will be problem to access some directory, the switch login type from local user to root user: 
+username@ber-ianusdpa01vm:~$ sudo su
+
+The terminal should now works as a server root user:
+root@ber-ianusdpa01vm:/#
+Install Apache web server 2.4
+ We can install Apache web server in two ways.
+                         - Binary module
+                         - From Source
+
+Here, we install Apache web server from distribution package manager (apt-get). Or it also possible to download the source code and then compile and install.
+$ sudo apt-get update
+$ sudo apt-get install apache2
+After whole installation process is done then put the domain_name_or_ip_address (195.37.32.7) on the browser. If you can see "It works" page that means setup is completed. This is the default web page for apache2 web server. The web server software is running but no content has been added, yet.
+Apache Web Sever 2.4 version directory structure is differ from the previous versions. All files and folders are located in a distributed manner. There are four different locations where all Tomcat8 setup directory and files are located.  
+/etc/apache2/...
+/usr/lib/apache2/...
+/var/lib/apache2/...
+/var/log/apache2/...
+Main configuration file apache2.conf is located within the /etc/ directory. However, all modules are stored in the /usr/lib/ directory. And log files address is /var/log/apache2  
+Install JRE on Ubuntu 16.04
+Update apt-get package index:
+$ sudo apt-get update
+Install the jre: 
+$ sudo apt-get install openjdk-8-jre
+Check Java Version:
+$ java -version
+ 
+openjdk version "1.8.0_121"
+OpenJDK Runtime Environment (build 1.8.0_121-8u121-b13-0ubuntu1.16.04.2-b13)
+OpenJDK 64-Bit Server VM (build 25.121-b13, mixed mode)
+
+To find the JRE location: 
+$ whereis java
+ 
+java: /usr/bin/java /usr/share/java /usr/share/man/man1/java.1.gz
+Install Apache Tomcat server 8
+Now we are going to install the Tomcat 8 on Ubuntu 16.04. To install Apache Tomcat, we need to have JRE installed already.  To install Tomcat 8, first update the apt-get package lists:
+$ sudo apt-get update
+Now install tomcat8:
+$ sudo apt-get install tomcat8
+
+Tomcat should be running now. Check the status:
+$ sudo systemctl status tomcat8.service
+ 
+    tomcat8.service - LSB: Start Tomcat.
+    Loaded: loaded (/etc/init.d/tomcat8; bad; vendor preset: enabled)
+    Active: active (running) since Thu 2017-05-11 11:56:07 CEST; 4min 23s ago
+    Docs: man:systemd-sysv-generator(8)
+    Process: 21394 ExecStop=/etc/init.d/tomcat8 stop (code=exited, status=0/SUCCESS)
+    Process: 21410 ExecStart=/etc/init.d/tomcat8 start (code=exited, status=0/SUCCESS)
+    Tasks: 27
+    Memory: 298.8M
+    CPU: 15.636s
+    CGroup: /system.slice/tomcat8.service
+           ??21437 /usr/lib/jvm/default-java/bin/java -Djava.util.logging.config.file=/var/lib/tomcat8/conf/logging.properties -Dj
+ 
+    May 11 11:56:02 ber-ianusdpa01vm systemd[1]: Starting LSB: Start Tomcat....
+    May 11 11:56:02 ber-ianusdpa01vm tomcat8[21410]:  * Starting Tomcat servlet engine tomcat8
+    May 11 11:56:07 ber-ianusdpa01vm tomcat8[21410]:    ...done.
+    May 11 11:56:07 ber-ianusdpa01vm systemd[1]: Started LSB: Start Tomcat..
+
+Tomcat8 setup directory structure is differ from the previous versions. The directory and files are located in a different places. There are four different location where all Tomcat8 directory and files are located.  
+/etc/tomcat8/...
+/usr/share/tomcat8/...
+/var/lib/tomcat8/...
+/var/log/tomcat8/...
+
+Note that, Tomcat8 home folder is here '/var/lib/tomcat8/'. To setup the user to access admin tools "conf" folder is the right place; where the tomcat-users.xml file is located. To configure Tomcat Web Management Interface, put name in the tomcat-users.xml in between the <tomcat-users> tags, choose your username and password. 
+$ sudo nano /var/lib/tomcat8/conf/tomcat-users.xml
+And the followings: 
+....
+<role rolename="admin-gui"/>
+ <role rolename="manager-gui"/>
+ <role rolename="manager-script"/>
+ <user username="yourUserName" password="yourPassword" roles="admin-gui, manager-gui, manager-script"/>
+....
+
+Now, comment out the port 8080 connector in server.xml…(we will only enable AJP on port 8009)
+$ sudo nano /etc/tomcat8/server.xml
+<!-- <Connector port="8080" protocol="HTTP/1.1" connectionTimeout="20000" redirectPort="8443" /> -->
+Make sure the ajp-connector is not disabled…
+<Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
+
+After that, restart the tomcat:
+$ sudo service tomcat8 restart
+
+We can access the default page of Apache server at http://server_domain_or_IP. For our case, go to any browser window and write the "195.37.32.7:8080" on the browser and press enter. It will show the tomcat8 default page. Next step is to install MySqL server to store the database. 
+Install MySql Server
+There are two ways to install MySQL. You can either use one of the versions included in the APT package repository by default (which are 5.5 and 5.6), or you can install the latest version (currently 5.7) by manually adding MySQL's repository first.
+Here, you can just use the mysql-server APT package, which just installs the latest version for your Ubuntu distribution. At the time of writing, that's server version: 5.7.18-0, but you can always update to another version later.
+To install MySQL this way, update the package index on your server and install the package with apt-get. In between the installation process, a pop-up window will be appear to give the mysql server user name and password. 
+$ sudo apt-get update
+ 
+$ sudo apt-get install mysql-server
+
+To check the version of MySQL with the following command.
+$ mysql --version
+
+The output may look like:
+mysql  Ver 14.14 Distrib 5.7.18, for Linux (x86_64) using  EditLine wrapper
+
+If MySQL isn't running, you can start it with:
+$ sudo service mysql start
+
+For connecting to the database using the mysqladmin tool, which is a client that lets you run administrative commands. For example, this command says to connect to MySQL as root (-u root), prompt for a password (-p), enter and give the password.
+Here, the user name is root and password **********
+$ mysql -u root -p
+ 
+Enter password:
+The output should look like this:
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 49295
+Server version: 5.7.18-0ubuntu0.16.04.1 (Ubuntu)
+ 
+Copyright (c) 2000, 2017, Oracle and/or its affiliates. All rights reserved.
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+mysql>
+
+To check the database status: 
+mysql> show databases;
+It will show the present list of databases in the server.
+
+Switch to a perticular database 
+mysql> use ianus;
+
+To check the list of Table in a perticular database
+
+mysql> show tables;
+
+If there will be no database exist, you should create the DB called "ianus_metadata",  "ianus" and "camunda" in the same way that already described in confluence (Entwicklungsumgebung). You could backup your local DB to get your own DIPs.
+DROP DATABASE ianus_metadata;
+DROP DATABASE ianus;
+DROP DATABASE camunda;
+ 
+ 
+CREATE DATABASE ianus;
+CREATE DATABASE ianus_metadata;
+CREATE DATABASE camunda;
+exit;
+
+Insert the existing sql data into the database "ianus_metadata",  "ianus" and "camunda" 
+
+$ mysql -u root -p camunda < camunda.sql
+$ mysql -u root -p ianus_metadata < ianus_metadata.sql
+$ mysql -u root -p ianus < ianus.sql
+
+Create an alternative user account in the MySQL server
+CREATE USER 'ianus'@'localhost' IDENTIFIED BY '******';
+Then grant the permission to access the DB for the user
+
+GRANT ALL PRIVILEGES ON ianus_metadata.* TO 'ianus'@'localhost';
+GRANT ALL PRIVILEGES ON ianus.* TO 'ianus'@'localhost';
+GRANT ALL PRIVILEGES ON camunda.* TO 'ianus'@'localhost';
+ 
+To deploy the access module, you need to create the war file and put it in the webapps folder of tomcat8 server. To do so, first you need to build the war file of the iansu-access module. You should build the ianus-access module in the local PC with "$ mvn clean package" command. The war file will be on the target folder. This file should be copied to the webapps (/var/lib/tomcat8/webapps) folder with SSH or FileZilla.
+After that, restart the tomcat:
+$ sudo service tomcat8 restart
+
+Then, go to any browser window and write the "195.37.32.7:8080/ianus-access" and press enter. It will show the datenportal front page. After that, we need to install the tomcat connector, that can be act as a bridge between apache2 and tomcat server. 
+
+Install and configure Tomcat Connector "mod-jk":
+Now, we are going to setup Apache server to forward some of our URLs to Tomcat. This is a walk-through for setting up Apache server 2 to use with Tomcat 8 via Apache mod_jk. We will probably want to do this, because we want Apache server to serve static content and forward some of the URLs to Tomcat for dynamic content.
+Installing and configuring mod_jk:
+$ sudo apt-get install libapache2-mod-jk
+Now with the following command we can see that the module "jk_module" has indeed been loaded.
+$ apache2ctl -M
+ 
+ 
+Loaded Modules:
+ core_module (static)
+ so_module (static)
+ watchdog_module (static)
+ http_module (static)
+ log_config_module (static)
+ logio_module (static)
+ version_module (static)
+ unixd_module (static)
+ access_compat_module (shared)
+ alias_module (shared)
+ auth_basic_module (shared)
+ authn_core_module (shared)
+ authn_file_module (shared)
+ authz_core_module (shared)
+ authz_host_module (shared)
+ authz_user_module (shared)
+ autoindex_module (shared)
+ deflate_module (shared)
+ dir_module (shared)
+ env_module (shared)
+ filter_module (shared)
+ jk_module (shared)
+ mime_module (shared)
+ mpm_prefork_module (shared)
+ negotiation_module (shared)
+ php5_module (shared)
+ rewrite_module (shared)
+ setenvif_module (shared)
+ status_module (shared)
+
+Now, we need to know the address of workers.properties file. This is the file where all worker list is entourage. In the "jk.conf" file we can see where the workers.properties file is located:
+$ sudo nano /etc/apache2/mods-available/jk.conf
+Look the third line, it shows the address where workers.properties file is located. 
+<IfModule jk_module>
+ 
+    # We need a workers file exactly once
+    # and in the global server
+ 
+    JkWorkersFile /etc/libapache2-mod-jk/workers.properties
+ 
+    # Our JK error log
+    # You can (and should) use rotatelogs here
+ 
+    JkLogFile /var/log/apache2/mod_jk.log
+ 
+    # Our JK log level (trace,debug,info,warn,error)
+    JkLogLevel info
+    # Our JK shared memory file
+ 
+    JkShmFile /var/log/apache2/jk-runtime-status
+We can see that the workers.properties is located under /etc/libapache2-mod-jk. Now, edit this workers.properties file, where put the tomcat_home and java_home address. Along with, the worker list.
+# workers.tomcat_home should point to the location where you
+# installed tomcat. This is where you have your conf, webapps and lib
+# directories.
+ 
+workers.tomcat_home=/var/lib/tomcat8
+ 
+# workers.java_home should point to your Java installation. Normally
+# you should have a bin and lib directories beneath it.
+ 
+workers.java_home=/usr/lib/jvm/default-java
+ 
+# You should configure your environment slash... ps=\ on NT and / on UNIX
+# and maybe something different elsewhere.
+In above settings, your Tomcat home might be different than "/var/lib/tomcat8" depending on your Tomcat installation.
+Make sure the other settings are correctly put in here, should have similar lines:
+#------ worker list ------------------------------------------
+#---------------------------------------------------------------------
+# The workers that your plugins should create and work with
+ 
+worker.list=ajp13_worker
+ 
+#------ ajp13_worker WORKER DEFINITION ------------------------------
+#---------------------------------------------------------------------
+# Defining a worker named ajp13_worker and of type ajp13
+# Note that the name and the type do not have to match.
+ 
+worker.ajp13_worker.port=8009
+worker.ajp13_worker.host=localhost
+worker.ajp13_worker.type=ajp13
+ 
+# Specifies the load balance factor when used with
+# a load balancing worker.
+# Note:
+#  ----> lbfactor must be > 0
+#  ----> Low lbfactor means less work done by the worker.
+ 
+worker.ajp13_worker.lbfactor=1
+Remember "worker.list=ajp13_worker", we will be using it shortly.
+Save and exit.
+Now find the 000-default.conf file. This is a template file of VirtualHost Management. This file is located under the /etc/apahce2/sites-avilable/ directory. 
+$ cd /etc/apache2/sites-available/
+ 
+000-default.conf  default-ssl.conf
+Make a copy of 000-default.conf file, rename it as "ianus-dataportal.conf" and paste in the same directory. 
+$ cp /etc/apache2/sites-available/000-default.conf  /etc/apache2/sites-available
+ 
+000-default.conf  default-ssl.conf ianus-dataportal.conf
+Finally, to configure the URLs that Apache should pass through the Tomcat, for that, edit VirtualHost file (ianus-dataportal.conf).
+Add JkMount mapping:
+$ sudo nano /etc/apache2/sites-available/ianus-dataportal.conf
+
+Below, you can see, we are using the 195.37.32.7 IP for live deployment. The document root we set to /var/lib/tomcat8/webapps/ianus-access/resources. That location is where any static content optionally will be placed if any, it depends on how you do your jkmount-mappings. As we can see, we are specifying that url pattern '/manager/*' will be forwarded to Tomcat. Similarly, we can map any URL pattern mapped to Tomcat server. As we mention earlier, "ajp23_worker" is same as "worker.list" value.
+VirtualHost *:80>
+        ServerName 195.37.32.7
+        ServerAdmin webmaster@localhost
+        #DocumentRoot /var/lib/tomcat8/webapps/ianus-access/resources
+ 
+        #<Directory /var/lib/tomcat8/webapps/ianus-access >
+        #        Options Indexes FollowSymLinks
+        #        AllowOverride None
+        #        Require all granted
+        #</Directory>
+ 
+         
+        JkMount /* ajp13_worker
+        JkMount / ajp13_worker
+        # Important: do not use the following line. This line blocks the static content (stored in resources) of the war file.
+        #JkUnMount /resources/* ajp13_worker
+</VirtualHost> 
+Save and exit.
+Now, in order to enable this virtual server, you should run:
+sudo a2ensite ianus-dataportal.conf
+sudo service apache2 restart
+
+Deployment of Data Portal
+The data portal (or access-module.war) can be generated locally (mvn package) and copy via SSH to the live server.
+The data portal should be copied into the folder /var/lib/tomcat8/webapps. In this folder it should be called ROOT, because we want to access the datenportal directly by using the URL(195.97.32.7).
+sudo cp ~/ianus-access.war /var/lib/tomcat8/webapps/ROOT.war
+
+It is a good practice the reinitialization of tomcat after the deployment:
+Now restart both server (Tomcat8 and Apache2).
+$ sudo service tomcat8 restart
+$ sudo service apache2 restart
+We can now access the datenportal page by, 195.37.32.7 IP address. 
+Optionally, you can deploy the ianus-ingest-module in the same server. In this, the ianus-ingest-module plays a secondary role. Its URL would be: 195.97.32.7/ianus-ingest-web. In order to deploy this module, you should copy the war file into the webapps folder of tomcat.
+sudo cp ~/ianus-ingest-web.war /var/lib/tomcat8/webapps/
+
+JVM Heap Memory Settings
+Apache Tomcat is widely used Web Container in the world. Very big companies run on Apache Tomcat now a days. There are quite a few other alternatives like IBM WebSphere, Geronimo, IIS, etc. It’s very critical for us to configure all correct parameters while running the application in Production environment or even in development environment. The common problem could be happen while running is Memory Heap size problem. To resolve this issue, we need to change the JVM Heap Setting (-Xms -Xmx) of Tomcat. To do so, we will go over steps on how to configure -Xms, -Xmx and -XX:PermSize value for Tomcat server. 
+$ sudo nano /etc/default/tomcat8
+Increase the value of the Heap memory: Xmx"1024"m 
+JAVA_OPTS="-Djava.awt.headless=true -Xmx2024m -XX:MaxPermSize=256m -XX:+UseConcMarkSweepGC"
+
+Update DIPs shown in dataportal
+In order to show the most present status of the existing DIPs, you need to enter this script in the browser:
+http://datenportal.ianus-fdz.de/scripts/updateDipList.jsp
+
+Grant permissions for easy deployment and FTP-access
+As FTP users will be logging in using their personal account, they do not have permissions to write to the tomcat8 webapps directory. Issue the following commands to grant write access to all tech-team members:
+write permissions for group
+sudo su -
+groupadd theGeeks
+usermod -a -G theGeeks zschubert
+usermod -a -G theGeeks mrahman
+usermod -a -G theGeeks jurzua
+usermod -a -G theGeeks fschafer
+usermod -a -G theGeeks hschmeer
+chgrp -R theGeeks /var/lib/tomcat8/webapps
+ 
+# ...and data storage directories:
+chgrp -R theGeeks /data/ianus-storage
+# set sticky bit to have newly created files/dirs inherit the groupID
+chmod g+s ianus-storage/
+ 
+#log directory:
+chgrp -R theGeeks /var/log/tomcat8
+chmod g+s /var/log/tomcat8
+
+Map the Domain name with the IP address
+The domain name for the live server is datenportal.ianus-fdz.de. We have to map this domain name with the server IP address: 195.37.32.7. As because, the user can access the live server via the domain name. To do so, we need to edit the VirtualHost file.
+$ sudo nano /etc/apache2/sites-available/ianus-dataportal.conf
+
+Edit the ServerName as "datenportal.ianus-fdz.de" instead of IP address. 
+VirtualHost *:80>
+ 
+        #ServerName 195.37.32.7
+        ServerName datenportal.ianus-fdz.de
+ 
+        ServerAdmin webmaster@localhost
+         
+        JkMount /* ajp13_worker
+       
+</VirtualHost> 
+
+After that, edit the Production Configuration of properties file.
+$ sudo nano /var/lib/tomcat8/webapps/ROOT/WEB-INF/classes/ianus-access.properties
+ 
+ 
+## Production Configuration ##
+ 
+#home.url=http://195.37.32.7
+ 
+home.url=http://datenportal.ianus-fdz.de
+$ sudo nano /var/lib/tomcat8/webapps/ianus-ingest-web/WEB-INF/classes/ianus-ingest-web.properties
+ 
+ 
+## Production Configuration ##
+ 
+#home.url=http://195.37.32.7/ianus-ingest-web
+ 
+home.url=http://datenportal.ianus-fdz.de/ianus-ingest-web
+ 
+content.path=/data/ianus-storage
+IP address as Alias of the Domain Name 
+Now, when user press the IP address on the browser, it will redirect to the main datenportal page (datenportal.ianus-fdz.de). To do so, we need to make the IP address as Alias of the Domain name. 
+$ sudo nano /etc/apache2/sites-available/ianus-dataportal.conf
+
+Add ServerAlias as the IP Address "195.37.32.7" . 
+VirtualHost *:80>
+        ServerName datenportal.ianus-fdz.de
+ 
+        ServerAlias 195.37.32.7
+ 
+        ServerAdmin webmaster@localhost
+         
+        JkMount /* ajp13_worker
+       
+</VirtualHost>
+
+Now restart both server (Tomcat8 and Apache2).
+$ sudo service tomcat8 restart
+$ sudo service apache2 restart
+
+Everything works as expected. 
+
+DROID Setup
+Droid creates logs- and temporal-files in the folder /usr/share/tomcat8/.droid6. This folder should be created only once and we should assign fully permissions to the user tomcat8.
+sudo mkdir /usr/share/tomcat8/.droid6
+sudo chown -R tomcat8:tomcat8 /usr/share/tomcat8/.droid6
+
+crontab Setup
+Cron is a time-based scheduler with which we can schedule to execute specific commands/script in background. Crontab (cron table) is a text file contains user’s cron jobs. In the Live server we are going to configure the crontab to make a weakly backup our all databases and data storage backup. To make the backup, we write a bach script and run it from the crontab as a weekly manner. Every week sunday it will make the backup from the Live server to the test server. 
+$ sudo nano /etc/crontab
+ 
+ 
+0 1 * * 0 root /data/cron-script/backup.sh >> /data/cron-script/transfer.log 2>&1
+Bash Script
+$ sudo nano /data/cron-script/backup.sh
+
+We are using Test Server (195.37.32.4) as the backup server. Below is the script to transfer the databases and storage from Live server (195.37.32.7) to the Test server (195.37.32.4). The database stored in the Test server 
+'/data/live-backup/database_backup/'with the folder name as DATE. And ianus-storage will be stored in the /data/live-backup/ address with same name. 
+
+#### Bash script to take the backup of live server database and storage 
+ 
+#### dump the database from the live server to the test server (Address: /data/live-backup/database_backup/) #############
+ 
+name=$(date +%m-%d-%Y)
+ 
+ssh -i /data/keyset/id_rsa SERVER_USER_NAME@195.37.32.4 'mkdir /data/live-backup/database_backup/'$name
+ 
+ 
+mysqldump -uroot --password=admin ianus | gzip -c | ssh -i /data/keyset/id_rsa SERVER_USER_NAME@195.37.32.4 'cat > /data/live-backup/database_backup/'$name'/ianus_`date +\%m-\%d-\%Y`.sql'
+mysqldump -uroot --password=admin ianus_metadata | gzip -c | ssh -i /data/keyset/id_rsa SERVER_USER_NAME@195.37.32.4 'cat > /data/live-backup/database_backup/'$name'/ianus_metadata_`date +\%m-\%d-\%Y`.sql'
+mysqldump -uroot --password=admin camunda | gzip -c | ssh -i /data/keyset/id_rsa SERVER_USER_NAME@195.37.32.4 'cat > /data/live-backup/database_backup/'$name'/camunda_`date +\%m-\%d-\%Y`.sql'
+ 
+ 
+##### copy the storage file #########
+ 
+rsync -hrtplu -e 'ssh -i /data/keyset/id_rsa' /data/ianus-storage SERVER_USER_NAME@195.37.32.4:/data/live-backup/
+Sudoers File
+The RsyncUpload component needs to run some scripts with sudo privileges.
+Therefore, edit the sudoers file directly or extend it by writing this new file (if not already existent):
+sudo visudo -f /etc/sudoers.d/rsync_upload
+ 
+# insert:
+tomcat8 ALL=(ALL) NOPASSWD: /var/lib/tomcat8/webapps/ianus-ingest-web/WEB-INF/classes/rsyncUpload/rsync_upload$
+tomcat8 ALL=(ALL) NOPASSWD: /var/lib/tomcat8/webapps/ianus-ingest-web/WEB-INF/classes/rsyncUpload/rsync_upload$
+It is important to use visudo (instead of any basic editor), because visudo has some basic syntax checking to prevent ending up with a screwed system!!!
+Transfer Log
+The transfer log will be in the below address.
+$ /data/cron-script/transfer.log
+External/Additional Disc Setup
+This example show how to mount a disc connected to the server. In this example the drive is sdb and the partition is /dev/sdb.
+The following command show the correct configuration of the partitions:
+sudo lsblk -o NAME,FSTYPE,SIZE,MOUNTPOINT,LABEL
+NAME   FSTYPE  SIZE MOUNTPOINT LABEL
+fd0              4K           
+sda            500G           
+??sda1 ext4    484G /         
+??sda2           1K           
+??sda5 swap     16G [SWAP]    
+sdb              5T           
+sr0           1024M
+
+In the output of lsblk, we can see that the driver sdb is not yet mounted.
+The first step to set the file system type. We use ext4:
+mkfs.ext4 /dev/sdb
+Now, we can mount the driver:
+mdkir /data/ianus-external-disk-5T
+sudo mount -t ext4 /dev/sdb /data/ianus-external-disk-5T/
+Now, we can create the folder for each kind of Information Package:
+mkdir /data/ianus-external-disk-5T/ianus-storage/
+mkdir aip_storage
+mkdir dip_storage
+mkdir processing
+mkdir sip_storage
+mkdir tip_storage
+The owner of the folders should be tomcat and the permission configuration should be 755:
+sudo chmod -R 755 /data/ianus-external-disk-5T/ianus-storage/
+sudo chown tomcat /data/ianus-external-disk-5T/ianus-storage/
+
+
+
